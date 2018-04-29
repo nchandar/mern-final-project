@@ -1,106 +1,86 @@
 import React, { Component } from 'react';
 import 'whatwg-fetch';
+import DatePicker from 'react-date-picker';
+import Picker from 'react-picker';
+import Dropdown from 'react-dropdown'
+import 'react-dropdown/style.css'
 
 class Home extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      counters: []
+      date: new Date(),
+      picklistOptions: ['none'],
+      picklistValue: '',
+      locations: ['none']
     };
 
-    this.newCounter = this.newCounter.bind(this);
-    this.incrementCounter = this.incrementCounter.bind(this);
-    this.decrementCounter = this.decrementCounter.bind(this);
-    this.deleteCounter = this.deleteCounter.bind(this);
-
-    this._modifyCounter = this._modifyCounter.bind(this);
+    this.getHashTags = this.getHashTags.bind(this);
+    this.getLocation = this.getLocation.bind(this);
+    this.dateFormat = '';
   }
 
-  componentDidMount() {
-    fetch('/api/counters')
+  getHashTags(date) {
+    fetch(`/api/test/${date}`)
       .then(res => res.json())
       .then(json => {
         this.setState({
-          counters: json
-        });
+          picklistOptions : json[0].trends
+        })
       });
   }
 
-  newCounter() {
-    fetch('/api/counters', { method: 'POST' })
+  getLocation(trend) {
+    let trends = trend.match('#') ? trend.replace('#', '%23') : trend;
+    fetch(`/api/test/${this.dateFormat}/${trends}`)
       .then(res => res.json())
       .then(json => {
-        let data = this.state.counters;
-        data.push(json);
-
         this.setState({
-          counters: data
-        });
+          locations : json[0].locations[this.state.picklistValue]
+        })
       });
   }
 
-  incrementCounter(index) {
-    const id = this.state.counters[index]._id;
-
-    fetch(`/api/counters/${id}/increment`, { method: 'PUT' })
-      .then(res => res.json())
-      .then(json => {
-        this._modifyCounter(index, json);
-      });
+  onChange(date) {
+    const newDateFormat = date.toISOString().slice(0,10); 
+    this.dateFormat = newDateFormat;
+    this.setState({ date });
+    this.getHashTags(newDateFormat);
   }
 
-  decrementCounter(index) {
-    const id = this.state.counters[index]._id;
-
-    fetch(`/api/counters/${id}/decrement`, { method: 'PUT' })
-      .then(res => res.json())
-      .then(json => {
-        this._modifyCounter(index, json);
-      });
-  }
-
-  deleteCounter(index) {
-    const id = this.state.counters[index]._id;
-
-    fetch(`/api/counters/${id}`, { method: 'DELETE' })
-      .then(_ => {
-        this._modifyCounter(index, null);
-      });
-  }
-
-  _modifyCounter(index, data) {
-    let prevData = this.state.counters;
-
-    if (data) {
-      prevData[index] = data;
-    } else {
-      prevData.splice(index, 1);
-    }
-
-    this.setState({
-      counters: prevData
-    });
+  handlePicklistValueChange(value) {
+    this.setState({ picklistValue : value.value });
+    this.getLocation(value.value);
   }
 
   render() {
+    const styles = {
+      display: 'inline-flex',
+      width: '60%', 
+    }
+
+    const styles2 = {
+      paddingRight: '20px'
+    }
+
     return (
-      <>
-        <p>Counters:</p>
+      <div style={styles}>
+        <div>
+            <DatePicker
+              onChange={this.onChange.bind(this)}
+              value={this.state.date}
+            />
+        </div>
 
-        <ul>
-          { this.state.counters.map((counter, i) => (
-            <li key={i}>
-              <span>{counter.count} </span>
-              <button onClick={() => this.incrementCounter(i)}>+</button>
-              <button onClick={() => this.decrementCounter(i)}>-</button>
-              <button onClick={() => this.deleteCounter(i)}>x</button>
-            </li>
-          )) }
-        </ul>
+          <div styles={styles2}>
+            <Dropdown options={this.state.picklistOptions} onChange={this.handlePicklistValueChange.bind(this)} value={this.state.picklistValue} placeholder="Select an option" />
+          </div>
 
-        <button onClick={this.newCounter}>New counter</button>
-      </>
+          <div>
+            {this.state.locations}
+          </div>
+      </div>
     );
   }
 }

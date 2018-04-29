@@ -37,6 +37,12 @@ module.exports = {
         loader: 'babel-loader'
       },
 
+      {
+        test: /\.css$/,  
+        include: /node_modules/,  
+        loaders: ['style-loader', 'css-loader'],
+      },
+
       // SCSS files
       {
         test: /\.scss$/,
